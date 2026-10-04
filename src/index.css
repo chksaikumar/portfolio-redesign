@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-night text-fog font-sans antialiased;
+}
+
+.light body {
+  @apply bg-cream text-ink;
+}
+
+/* Thin elegant scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(52, 211, 153, 0.35);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(52, 211, 153, 0.6);
+}
+
+::selection {
+  background: rgba(52, 211, 153, 0.35);
+}
+
+/* Cover-flow helpers */
+.coverflow-scene {
+  perspective: 1400px;
+}
+.coverflow-card {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+/* Traveling glow pulse along an SVG path */
+@keyframes travel {
+  from {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  to {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+.travel-dot {
+  animation: travel 4.5s linear infinite;
+}
+
+/* Chat window slide-up */
+@keyframes chat-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.chat-in {
+  animation: chat-in 0.25s ease-out;
+}
+
+/* Respect reduced motion everywhere */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
