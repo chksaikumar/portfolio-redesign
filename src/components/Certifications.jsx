@@ -1,189 +1,207 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import { FiCheck, FiChevronLeft, FiChevronRight } from "react-icons/fi";
-import Reveal from "./Reveal.jsx";
-import { certifications } from "../data/portfolio.js";
+import { useEffect, useRef } from "react";
 
-const N = certifications.length; // 13
-const SPACING = 200; // px between card centers
-const SWIPE_THRESHOLD = 70; // px of drag to change card
-
-// Shortest signed offset around the wrap, so cards take the short path.
-function offsetOf(i, index) {
-  let o = i - index;
-  if (o > N / 2) o -= N;
-  if (o < -N / 2) o += N;
-  return o;
-}
-
-function CertificateCard({ cert }) {
-  return (
-    <div className="relative flex h-[360px] w-[250px] select-none flex-col items-center justify-between overflow-hidden rounded-lg bg-[#f7f3e8] p-5 text-center shadow-card md:h-[400px] md:w-[290px] md:p-6">
-      {/* decorative double border */}
-      <div className="pointer-events-none absolute inset-2 rounded border border-[#d9cfb2]" />
-      <div className="pointer-events-none absolute inset-3 rounded border border-[#e7dfc6]" />
-
-      <div>
-        <p className="font-serif text-[9px] uppercase tracking-[0.3em] text-[#97865f] md:text-[10px]">
-          Certificate of Completion
-        </p>
-        <div className="mx-auto my-3 h-px w-16 bg-[#c9bd97]" />
-        <p className="font-serif text-xs italic text-[#6d6350]">
-          This certificate is presented to
-        </p>
-        <p className="mt-1 font-serif text-base font-semibold text-[#2b2620] md:text-lg">
-          Sai Kumar Chinthakayala
-        </p>
-      </div>
-
-      <div className="px-2">
-        <p className="font-serif text-lg font-bold leading-snug text-[#1f1b16] md:text-xl">
-          {cert.title}
-        </p>
-      </div>
-
-      <div>
-        <p className="font-serif text-xs text-[#6d6350] md:text-sm">{cert.issuer}</p>
-        <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#97865f]">
-          {cert.date}
-        </p>
-      </div>
-
-      {/* seal badge */}
-      <div className="absolute bottom-5 right-5 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-[#06281d] shadow-glow ring-2 ring-[#0e9f6e] ring-offset-2 ring-offset-[#f7f3e8] md:h-14 md:w-14">
-        <FiCheck className="h-5 w-5 md:h-6 md:w-6" strokeWidth={3} aria-hidden="true" />
-      </div>
-    </div>
-  );
-}
+const CERTS = [
+  { title: "Claude Code 101",
+    sig: "ANTHROPIC", issuer: "Anthropic", date: "AUGUST 2026", seal: "VERIFIED" },
+  { title: "Introduction to Model Context Protocol",
+    sig: "ANTHROPIC", issuer: "Anthropic", date: "JULY 2026", seal: "VERIFIED" },
+  { title: "Claude 101",
+    sig: "ANTHROPIC", issuer: "Anthropic", date: "JULY 2026", seal: "VERIFIED" },
+  { title: "AI Fluency Framework & Foundations",
+    sig: "ANTHROPIC", issuer: "Anthropic", date: "JULY 2026", seal: "VERIFIED" },
+  { title: "AWS Certified Cloud Practitioner",
+    sig: "AWS", issuer: "Amazon Web Services", date: "MAY 2025", seal: "CERTIFIED" },
+  { title: "Overview of Web GIS Technology",
+    sig: "IIRS / ISRO", issuer: "IIRS / ISRO", date: "JULY 2021", seal: "AWARDED" },
+  { title: "Python for Beginners",
+    sig: "UDEMY", issuer: "Udemy", date: "JULY 2019", seal: "AWARDED" },
+  { title: "Version Control with Git",
+    sig: "COURSERA", issuer: "Coursera", date: "JUNE 2021", seal: "AWARDED" },
+  { title: "Developers Guide to Python 3 Programming",
+    sig: "EDUONIX", issuer: "EDUONIX", date: "MAY 2020", seal: "AWARDED" },
+  { title: "CSS Essential Training",
+    sig: "LINKEDIN LEARNING", issuer: "LinkedIn Learning", date: "MARCH 2021", seal: "AWARDED" },
+  { title: "HTML Essential Training",
+    sig: "LINKEDIN LEARNING", issuer: "LinkedIn Learning", date: "MARCH 2021", seal: "AWARDED" },
+  { title: "Crash Course on Python",
+    sig: "COURSERA / GOOGLE", issuer: "Coursera / Google", date: "APRIL 2020", seal: "AWARDED" },
+  { title: "The Complete Web Developer in 2020: Zero to Mastery",
+    sig: "UDEMY", issuer: "Udemy", date: "JUNE 2020", seal: "AWARDED" },
+];
 
 export default function Certifications() {
-  const [index, setIndex] = useState(0);
-  const reduce = useReducedMotion();
-  const dragMoved = useRef(false);
+  const sectionRef = useRef(null);
+  const activeRef = useRef(0);
 
-  const goTo = useCallback((i) => setIndex(((i % N) + N) % N), []);
-  const next = useCallback(() => setIndex((p) => (p + 1) % N), []);
-  const prev = useCallback(() => setIndex((p) => (p - 1 + N) % N), []);
-
-  // Arrow-key navigation (skipped while typing in an input)
   useEffect(() => {
-    const onKey = (e) => {
-      const tag = document.activeElement?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
-      if (e.key === "ArrowRight") next();
-      if (e.key === "ArrowLeft") prev();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [next, prev]);
+    const section = sectionRef.current;
+    if (!section) return;
+    const track = section.querySelector(".cert-track");
+    const cards = Array.from(section.querySelectorAll(".certificate"));
+    const prev = section.querySelector(".cert-prev");
+    const next = section.querySelector(".cert-next");
+    const count = section.querySelector(".cert-count");
+    const bar = section.querySelector(".cert-progress span");
+    let pointerX = null;
 
-  const transition = reduce
-    ? { duration: 0 }
-    : { type: "spring", stiffness: 260, damping: 32 };
+    function updateCerts() {
+      const activeCert = activeRef.current;
+      const compact = window.innerWidth <= 520;
+      cards.forEach((card, index) => {
+        const delta = index - activeCert;
+        const amount = Math.min(Math.abs(delta), 4);
+        const side = delta < 0 ? -1 : 1;
+        const shift = delta * (compact ? 112 : 260);
+        const rotate = delta === 0 ? 0 : -side * (compact ? 42 : 54);
+        const scale = 1 - Math.min(amount * (compact ? 0.115 : 0.14), compact ? 0.31 : 0.4);
+        const depth = -Math.min(amount, 3) * (compact ? 100 : 170);
+        const drop = Math.min(amount, 2) * (compact ? 5 : 9);
+        card.style.transform =
+          "translate3d(" + shift + "px," + drop + "px," + depth + "px) rotateY(" + rotate + "deg) scale(" + scale + ")";
+        card.style.opacity = String(
+          amount > 3 ? 0 : Math.max(compact ? 0.38 : 0.28, 1 - amount * (compact ? 0.2 : 0.23))
+        );
+        card.style.filter =
+          "saturate(" + (1 - Math.min(amount * 0.14, 0.38)) + ") brightness(" + (1 - Math.min(amount * 0.065, 0.18)) + ")";
+        card.style.zIndex = String(100 - amount * 10);
+        card.style.pointerEvents = amount > 2 ? "none" : "auto";
+        const active = index === activeCert;
+        card.classList.toggle("is-active", active);
+        card.setAttribute("aria-current", active ? "true" : "false");
+        card.setAttribute("aria-hidden", amount > 3 ? "true" : "false");
+        card.setAttribute(
+          "aria-label",
+          "Certification " + (index + 1) + " of " + cards.length + ": " + card.querySelector("h3").textContent
+        );
+      });
+      count.textContent =
+        String(activeCert + 1).padStart(2, "0") + " / " + String(cards.length).padStart(2, "0");
+      prev.disabled = activeCert === 0;
+      next.disabled = activeCert === cards.length - 1;
+      bar.style.width = ((activeCert + 1) / cards.length * 100) + "%";
+    }
+    function moveTo(index) {
+      activeRef.current = Math.max(0, Math.min(cards.length - 1, index));
+      updateCerts();
+    }
+    function move(direction) {
+      moveTo(activeRef.current + direction);
+    }
+    const onPrev = () => move(-1);
+    const onNext = () => move(1);
+    const onCardClick = (index) => () => {
+      if (index !== activeRef.current) moveTo(index);
+    };
+    const onPointerDown = (e) => {
+      pointerX = e.clientX;
+      track.setPointerCapture(e.pointerId);
+    };
+    const onPointerUp = (e) => {
+      if (pointerX === null) return;
+      const distance = e.clientX - pointerX;
+      pointerX = null;
+      if (Math.abs(distance) > 42) move(distance < 0 ? 1 : -1);
+    };
+    const onPointerCancel = () => {
+      pointerX = null;
+    };
+    const onKey = (e) => {
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        move(1);
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        move(-1);
+      }
+      if (e.key === "Home") {
+        e.preventDefault();
+        moveTo(0);
+      }
+      if (e.key === "End") {
+        e.preventDefault();
+        moveTo(cards.length - 1);
+      }
+    };
+    const onResize = () => updateCerts();
+
+    prev.addEventListener("click", onPrev);
+    next.addEventListener("click", onNext);
+    const cardHandlers = cards.map((card, i) => {
+      const h = onCardClick(i);
+      card.addEventListener("click", h);
+      return [card, h];
+    });
+    track.addEventListener("pointerdown", onPointerDown);
+    track.addEventListener("pointerup", onPointerUp);
+    track.addEventListener("pointercancel", onPointerCancel);
+    track.addEventListener("keydown", onKey);
+    window.addEventListener("resize", onResize);
+    const raf = requestAnimationFrame(updateCerts);
+
+    return () => {
+      prev.removeEventListener("click", onPrev);
+      next.removeEventListener("click", onNext);
+      cardHandlers.forEach(([card, h]) => card.removeEventListener("click", h));
+      track.removeEventListener("pointerdown", onPointerDown);
+      track.removeEventListener("pointerup", onPointerUp);
+      track.removeEventListener("pointercancel", onPointerCancel);
+      track.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onResize);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
 
   return (
-    <section id="certifications" className="py-24 md:py-32">
-      <div className="mx-auto max-w-6xl px-6">
-        <Reveal>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-accent">
-            Certifications
+    <section className="certifications" id="certifications" ref={sectionRef}>
+      <div className="wrap cert-heading-row">
+        <div className="section-head reveal">
+          <h2>Certifications</h2>
+          <p>
+            13 credentials across agentic AI, cloud, Python, version control, web development and
+            geospatial technology.
           </p>
-          <h2 className="mt-4 text-4xl font-bold tracking-tight md:text-5xl">
-            Credentials
-          </h2>
-          <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-muteddark light:text-mutedlight">
-            13 credentials across agentic AI, cloud, Python, version control and
-            web development
-          </p>
-        </Reveal>
-
-        <Reveal className="mt-12">
-          <div
-            className="coverflow-scene relative mx-auto h-[430px] max-w-5xl overflow-hidden md:h-[470px]"
-            role="region"
-            aria-roledescription="carousel"
-            aria-label="Certifications carousel"
-          >
-            <motion.div
-              className="absolute inset-0 cursor-grab active:cursor-grabbing"
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.6}
-              onDragStart={() => {
-                dragMoved.current = false;
-              }}
-              onDragEnd={(_, info) => {
-                if (Math.abs(info.offset.x) > 10) dragMoved.current = true;
-                if (info.offset.x < -SWIPE_THRESHOLD) next();
-                else if (info.offset.x > SWIPE_THRESHOLD) prev();
-                window.setTimeout(() => {
-                  dragMoved.current = false;
-                }, 80);
-              }}
-            >
-              {certifications.map((cert, i) => {
-                const o = offsetOf(i, index);
-                const abs = Math.abs(o);
-                const hidden = abs > 3;
-                return (
-                  <motion.div
-                    key={cert.title}
-                    className={`coverflow-card absolute left-1/2 top-6 md:top-8 ${
-                      o === 0 ? "" : "cursor-pointer"
-                    }`}
-                    initial={false}
-                    animate={{
-                      x: `calc(-50% + ${o * SPACING}px)`,
-                      rotateY: o === 0 ? 0 : (o > 0 ? -1 : 1) * 42 * Math.min(abs, 1.4),
-                      scale: 1 - Math.min(abs, 3) * 0.1,
-                      opacity: hidden ? 0 : 1 - Math.min(abs, 3) * 0.22,
-                      zIndex: 60 - abs,
-                    }}
-                    transition={transition}
-                    onClick={() => {
-                      if (dragMoved.current) return;
-                      if (o !== 0) goTo(i);
-                    }}
-                    style={{ pointerEvents: hidden ? "none" : "auto" }}
-                    aria-hidden={o !== 0}
-                  >
-                    <CertificateCard cert={cert} />
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </div>
-
-          {/* controls */}
-          <div className="mt-6 flex items-center justify-center gap-6">
-            <button
-              type="button"
-              onClick={prev}
-              aria-label="Previous certificate"
-              className="rounded-full border border-white/15 p-3 text-fog transition hover:border-accent hover:text-accent light:border-black/15 light:text-ink"
-            >
-              <FiChevronLeft className="h-5 w-5" aria-hidden="true" />
-            </button>
-            <p
-              className="font-mono text-sm tabular-nums text-muteddark light:text-mutedlight"
-              aria-live="polite"
-            >
-              {index + 1} / {N}
-            </p>
-            <button
-              type="button"
-              onClick={next}
-              aria-label="Next certificate"
-              className="rounded-full border border-white/15 p-3 text-fog transition hover:border-accent hover:text-accent light:border-black/15 light:text-ink"
-            >
-              <FiChevronRight className="h-5 w-5" aria-hidden="true" />
-            </button>
-          </div>
-          <p className="mt-4 text-center text-xs text-muteddark light:text-mutedlight">
-            Drag, swipe, click a side card, or use the arrow keys
-          </p>
-        </Reveal>
+        </div>
+        <div className="cert-controls reveal" aria-label="Certification carousel controls">
+          <button className="cert-arrow cert-prev" type="button" aria-label="Previous certification">
+            ←
+          </button>
+          <span className="cert-count" aria-live="polite">
+            01 / 13
+          </span>
+          <button className="cert-arrow cert-next" type="button" aria-label="Next certification">
+            →
+          </button>
+        </div>
+      </div>
+      <div className="cert-track reveal" aria-label="Certification carousel" tabIndex="0">
+        {CERTS.map((c) => (
+          <article className="certificate" key={c.title}>
+            <i className="cert-corner tl"></i>
+            <i className="cert-corner tr"></i>
+            <i className="cert-corner bl"></i>
+            <i className="cert-corner br"></i>
+            <div className="cert-content">
+              <span className="cert-kicker">CERTIFICATE OF COMPLETION</span>
+              <p className="cert-issuer">{c.issuer}</p>
+              <span className="cert-presented">PROUDLY PRESENTED TO</span>
+              <strong className="cert-name">Saikumar Chinthakayala</strong>
+              <p className="cert-award">for successful completion of</p>
+              <h3>{c.title}</h3>
+              <div className="cert-footer">
+                <span className="cert-meta">{c.date}</span>
+                <span className="cert-signature">{c.sig}</span>
+              </div>
+            </div>
+            <span className="cert-seal">
+              <span>✓</span>
+              {c.seal}
+            </span>
+          </article>
+        ))}
+      </div>
+      <div className="cert-progress" aria-hidden="true">
+        <span></span>
       </div>
     </section>
   );

@@ -1,60 +1,125 @@
-import { FiCpu } from "react-icons/fi";
-import Reveal from "./Reveal.jsx";
-import { aiSkills, stackSkills } from "../data/portfolio.js";
+import { useEffect, useRef } from "react";
+
+const GROUPS = [
+  {
+    title: "AI ENGINEERING",
+    nav: "AI engineering",
+    chips: [
+      "Agentic AI Development",
+      "AI Agents",
+      "Model Context Protocol (MCP)",
+      "LLM Applications",
+      "Prompt Engineering",
+      "Generative AI",
+      "Retrieval-Augmented Generation (RAG)",
+      "LangChain",
+      "Large Language Models (LLM)",
+    ],
+  },
+  {
+    title: "BACKEND & DATA",
+    nav: "Backend & data",
+    chips: [
+      "Java",
+      "Spring Boot",
+      "Python",
+      "Node.js",
+      "REST APIs",
+      "GraphQL",
+      "PostgreSQL",
+      "MySQL",
+      "MongoDB",
+    ],
+  },
+  {
+    title: "FRONTEND",
+    nav: "Frontend",
+    chips: [
+      "JavaScript",
+      "TypeScript",
+      "React",
+      "Next.js",
+      "Redux",
+      "HTML",
+      "CSS",
+      "Tailwind CSS",
+    ],
+  },
+  {
+    title: "PLATFORMS & DELIVERY",
+    nav: "Platforms & delivery",
+    chips: ["AWS", "Google Cloud", "Docker", "CI/CD", "Git", "Shopify", "SharePoint"],
+  },
+];
 
 export default function Skills() {
+  const sectionRef = useRef(null);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const skillButtons = Array.from(section.querySelectorAll(".skill-nav button"));
+    const skillGroups = Array.from(section.querySelectorAll(".skill-group"));
+    const handlers = [];
+    skillButtons.forEach((btn) => {
+      btn.setAttribute("aria-pressed", "false");
+      const onClick = () => {
+        const selected = Number(btn.getAttribute("data-skill"));
+        skillButtons.forEach((b) => {
+          const on = b === btn;
+          b.classList.toggle("active", on);
+          b.setAttribute("aria-pressed", String(on));
+        });
+        skillGroups.forEach((group, i) => {
+          group.classList.toggle("is-focused", i === selected);
+          group.classList.toggle("is-muted", i !== selected);
+        });
+        if (window.innerWidth <= 860) {
+          skillGroups[selected].scrollIntoView({
+            behavior: reduce ? "auto" : "smooth",
+            block: "center",
+          });
+        }
+      };
+      btn.addEventListener("click", onClick);
+      handlers.push([btn, onClick]);
+    });
+    return () => handlers.forEach(([btn, h]) => btn.removeEventListener("click", h));
+  }, []);
+
   return (
-    <section id="skills" className="py-24 md:py-32">
-      <div className="mx-auto max-w-6xl px-6">
-        <Reveal>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-accent">
-            Skills
+    <section id="skills" ref={sectionRef}>
+      <div className="wrap skills-layout reveal">
+        <div className="skills-copy">
+          <p className="eyebrow">Capabilities</p>
+          <h2>Depth across the stack. Curiosity beyond it.</h2>
+          <p>
+            From resilient backend services to polished interfaces, I work across the complete
+            delivery path, with AI as a practical layer rather than a buzzword.
           </p>
-          <h2 className="mt-4 text-4xl font-bold tracking-tight md:text-5xl">
-            AI-first, full-stack deep
-          </h2>
-        </Reveal>
-
-        {/* AI Expertise group */}
-        <Reveal className="mt-12">
-          <div className="rounded-2xl border border-accent/20 bg-gradient-to-r from-accent/15 via-accent/5 to-transparent p-6 md:p-8">
-            <h3 className="flex items-center gap-3 text-xl font-semibold tracking-tight">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/15 text-accent">
-                <FiCpu className="h-5 w-5" aria-hidden="true" />
-              </span>
-              AI Expertise
-            </h3>
-            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {aiSkills.map((skill) => (
-                <div
-                  key={skill}
-                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-card p-4 shadow-card transition hover:border-accent/40 light:border-black/10 light:bg-paper"
-                >
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full bg-accent shadow-glow"
-                    aria-hidden="true"
-                  />
-                  <span className="text-[15px] font-medium">{skill}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Reveal>
-
-        {/* Broader stack group */}
-        <Reveal className="mt-12">
-          <h3 className="text-xl font-semibold tracking-tight">Broader stack</h3>
-          <div className="mt-5 flex flex-wrap gap-2.5">
-            {stackSkills.map((skill) => (
-              <span
-                key={skill}
-                className="rounded-full border border-white/10 bg-card/70 px-4 py-1.5 text-sm text-muteddark transition hover:border-accent/40 light:border-black/10 light:bg-paper light:text-mutedlight"
-              >
-                {skill}
-              </span>
+          <div className="skill-nav" aria-label="Explore capability groups">
+            {GROUPS.map((g, i) => (
+              <button key={g.title} type="button" data-skill={i}>
+                {g.nav}
+              </button>
             ))}
           </div>
-        </Reveal>
+        </div>
+        <div>
+          {GROUPS.map((g) => (
+            <div className="skill-group" key={g.title}>
+              <h3>{g.title}</h3>
+              <div className="chips">
+                {g.chips.map((c) => (
+                  <span className="chip" key={c}>
+                    {c}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

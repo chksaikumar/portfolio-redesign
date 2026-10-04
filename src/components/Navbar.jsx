@@ -1,83 +1,107 @@
-import { useState } from "react";
-import { FiSun, FiMoon, FiMenu, FiX } from "react-icons/fi";
-import { navLinks, profile } from "../data/portfolio.js";
+import { useEffect, useRef } from "react";
 import { useTheme } from "../theme/ThemeContext.jsx";
+
+const LINKS = [
+  { href: "#about", label: "About" },
+  { href: "#experience", label: "Experience" },
+  { href: "#skills", label: "Skills" },
+  { href: "#certifications", label: "Certifications" },
+  { href: "#projects", label: "Work" },
+  { href: "#contact", label: "Contact" },
+];
 
 export default function Navbar() {
   const { theme, toggle } = useTheme();
-  const [open, setOpen] = useState(false);
+  const navRef = useRef(null);
+  const dark = theme === "dark";
+
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const progress = nav.querySelector(".scroll-progress");
+    const links = Array.from(nav.querySelectorAll(".nav-links a"));
+    const menu = nav.querySelector(".menu");
+    const linkList = nav.querySelector(".nav-links");
+    const sections = LINKS.map((l) => document.querySelector(l.href)).filter(Boolean);
+    let ticking = false;
+
+    function update() {
+      const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      const y = window.scrollY;
+      if (progress) progress.style.transform = "scaleX(" + Math.min(1, y / max) + ")";
+      let current = null;
+      const probe = y + window.innerHeight * 0.32;
+      for (const s of sections) {
+        if (s.offsetTop <= probe) current = s;
+      }
+      links.forEach((a) =>
+        a.classList.toggle("active", current ? a.getAttribute("href") === "#" + current.id : false)
+      );
+      ticking = false;
+    }
+    function onScroll() {
+      if (!ticking) {
+        requestAnimationFrame(update);
+        ticking = true;
+      }
+    }
+    function onMenu() {
+      const open = linkList.classList.toggle("open");
+      menu.setAttribute("aria-expanded", String(open));
+      menu.textContent = open ? "\u00d7" : "\u2630";
+    }
+    function onLinks() {
+      linkList.classList.remove("open");
+      menu.setAttribute("aria-expanded", "false");
+      menu.textContent = "\u2630";
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", update);
+    menu.addEventListener("click", onMenu);
+    linkList.addEventListener("click", onLinks);
+    update();
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", update);
+      menu.removeEventListener("click", onMenu);
+      linkList.removeEventListener("click", onLinks);
+    };
+  }, []);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-night/70 backdrop-blur-md light:border-black/10 light:bg-cream/70">
-      <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        {/* Brand */}
-        <a href="#top" className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10 text-sm font-bold text-accent ring-2 ring-accent/60">
-            SK
-          </span>
-          <span className="hidden font-semibold text-fog sm:block light:text-ink">
-            {profile.firstName}
-          </span>
-        </a>
-
-        {/* Desktop links */}
-        <div className="hidden items-center gap-7 md:flex">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-sm text-muteddark transition hover:text-accent light:text-mutedlight"
-            >
-              {link.label}
+    <nav className="site-nav" ref={navRef} aria-label="Primary navigation">
+      <div className="wrap nav-inner">
+        <button className="menu" type="button" aria-label="Toggle navigation" aria-expanded="false">
+          {"\u2630"}
+        </button>
+        <div className="nav-links">
+          {LINKS.map((l) => (
+            <a key={l.href} href={l.href}>
+              {l.label}
             </a>
           ))}
         </div>
-
-        {/* Right actions */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={toggle}
-            aria-label="Toggle theme"
-            className="rounded-full border border-white/10 p-2 text-fog transition hover:border-accent/50 hover:text-accent light:border-black/10 light:text-ink"
-          >
-            {theme === "dark" ? <FiSun size={17} /> : <FiMoon size={17} />}
-          </button>
-          <a
-            href="#contact"
-            className="hidden rounded-full bg-accent px-4 py-2 text-sm font-semibold text-night transition hover:bg-accent/90 md:inline-flex"
-          >
-            Contact
-          </a>
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-label="Toggle menu"
-            aria-expanded={open}
-            className="rounded-full border border-white/10 p-2 text-fog transition hover:text-accent md:hidden light:border-black/10 light:text-ink"
-          >
-            {open ? <FiX size={17} /> : <FiMenu size={17} />}
-          </button>
-        </div>
-      </nav>
-
-      {/* Mobile dropdown */}
-      {open && (
-        <div className="border-t border-white/10 bg-night/95 backdrop-blur-md md:hidden light:border-black/10 light:bg-cream/95">
-          <div className="flex flex-col gap-1 px-4 py-3">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-sm text-fog transition hover:bg-white/5 hover:text-accent light:text-ink light:hover:bg-black/5"
-              >
-                {link.label}
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-    </header>
+        <button
+          className="theme-toggle"
+          type="button"
+          onClick={toggle}
+          aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+          aria-pressed={String(dark)}
+          title={dark ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          <svg className="sun-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3.5" />
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42" />
+          </svg>
+          <svg className="moon-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 15.2A8.2 8.2 0 0 1 8.8 4 8.2 8.2 0 1 0 20 15.2Z" />
+          </svg>
+        </button>
+        <a className="nav-cta" href="mailto:chksaikumar@gmail.com">
+          Let&rsquo;s talk <span aria-hidden="true">↗</span>
+        </a>
+        <div className="scroll-progress" aria-hidden="true"></div>
+      </div>
+    </nav>
   );
 }
